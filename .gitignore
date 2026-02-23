@@ -1,0 +1,83 @@
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Node / Package managers
+# =========================
+node_modules/
+**/node_modules/
+
+# lockfiles (choose what you actually use; keeping one is fine)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# =========================
+# Env / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Build outputs
+# =========================
+dist/
+**/dist/
+build/
+**/build/
+
+# =========================
+# Cache / tooling
+# =========================
+.cache/
+**/.cache/
+.vite/
+**/.vite/
+.parcel-cache/
+**/.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+
+# =========================
+# Test coverage
+# =========================
+coverage/
+**/coverage/
+
+# =========================
+# Backend runtime files
+# =========================
+backend/uploads/
+backend/tmp/
+backend/.nyc_output/
+
+# =========================
+# Mongo / Docker (optional)
+# =========================
+mongo-data/
+data/
+*.pid
+
+# =========================
+# Misc
+# =========================
+*.pem
+*.key

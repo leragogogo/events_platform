@@ -1,0 +1,14 @@
+{
+  "name": "events-platform",
+  "private": true,
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "dev": "concurrently -k \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix backend run start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
