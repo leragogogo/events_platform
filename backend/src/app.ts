@@ -3,9 +3,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 import authRoutes from "./routes/auth.routes.js";
-/*import usersRoutes from "./routes/users.routes.js";
-import groupsRoutes from "./routes/groups.routes.js";
 import eventsRoutes from "./routes/events.routes.js";
+/*import usersRoutes from "./routes/users.routes.js";
 import registrationsRoutes from "./routes/registrations.routes.js";
 import connectionsRoutes from "./routes/connections.routes.js";
 import activityRoutes from "./routes/activity.routes.js";*/
@@ -20,9 +19,8 @@ export function createApp() {
   app.use(cookieParser());
 
   app.use("/api/auth", authRoutes);
-  /*app.use("/api/users", usersRoutes);
-  app.use("/api/groups", groupsRoutes);
   app.use("/api/events", eventsRoutes);
+  /*app.use("/api/users", usersRoutes);
   app.use("/api/registrations", registrationsRoutes);
   app.use("/api/connections", connectionsRoutes);
   app.use("/api/activity", activityRoutes);*/

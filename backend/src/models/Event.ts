@@ -27,7 +27,7 @@ const eventSchema = new Schema(
         city: { type: String, required: true },
         coordinates: { type: [Number], required: true },
         capacity: { type: Number, default: 50, min: 1 },
-        hostGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "HostGroup", required: true },
+        createdByUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     },
     { timestamps: true }
 );
