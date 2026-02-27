@@ -15,4 +15,4 @@ const activitySchema = new Schema(
 
 activitySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-export const Activity = model("Connection", activitySchema);
+export const Activity = model("Activity", activitySchema);
