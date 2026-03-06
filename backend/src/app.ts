@@ -7,7 +7,7 @@ import eventsRoutes from "./routes/events.routes.js";
 import registrationsRoutes from "./routes/registrations.routes.js";
 import connectionsRoutes from "./routes/connections.routes.js";
 import activityRoutes from "./routes/activity.routes.js";
-/*import usersRoutes from "./routes/users.routes.js";*/
+import usersRoutes from "./routes/users.routes.js";
 
 import { errorMiddleware } from "./middleware/error.middleware.js";
 
@@ -23,7 +23,7 @@ export function createApp() {
   app.use("/api/registrations", registrationsRoutes);
   app.use("/api/connections", connectionsRoutes);
   app.use("/api/activity", activityRoutes);
-  /*app.use("/api/users", usersRoutes);*/
+  app.use("/api/users", usersRoutes);
 
   app.use(errorMiddleware);
   return app;
