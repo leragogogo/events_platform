@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useQuery, useQueryClient } from "@tanstack/vue-query";
 import { getEvent, deleteEvent } from "../api/events";
 import { useAuthStore } from "../stores/auth";
+import { useRegistration } from "../composables/useRegistration";
 import BaseButton from "../components/ui/BaseButton.vue";
 import BaseModal from "../components/ui/BaseModal.vue";
 import BaseBadge from "../components/ui/BaseBadge.vue";
@@ -36,6 +37,10 @@ async function doDelete() {
 }
 
 const isOwner = () => event.value?.createdByUserId === auth.user?._id;
+
+const {
+  isRegistered, loading: regLoading, error: regError, register, cancel,
+} = useRegistration(id);
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("en-GB", {
@@ -84,6 +89,21 @@ function formatDate(iso: string): string {
       </div>
 
       <p class="detail-description">{{ event.description }}</p>
+
+      <div v-if="!isOwner()" class="detail-registration">
+        <ErrorMessage v-if="regError" :message="regError" />
+        <BaseButton
+          v-if="isRegistered"
+          variant="secondary"
+          :loading="regLoading"
+          @click="cancel"
+        >
+          Cancel registration
+        </BaseButton>
+        <BaseButton v-else :loading="regLoading" @click="register">
+          Register
+        </BaseButton>
+      </div>
     </template>
 
     <!-- Delete confirmation modal -->
@@ -139,6 +159,14 @@ function formatDate(iso: string): string {
   font-size: var(--font-size-sm);
   color: var(--color-neutral-500);
   padding-top: var(--space-1);
+}
+
+.detail-registration {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
 }
 
 .detail-description {
