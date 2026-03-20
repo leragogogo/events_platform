@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Event, EVENT_CATEGORIES } from "../models/Event.js";
+import { Activity, ACTIVITY_TTL_DAYS } from "../models/Activity.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
 
 const UPDATABLE_FIELDS = [
@@ -80,6 +81,10 @@ export async function createEvent(req: Request, res: Response, next: NextFunctio
       capacity,
       createdByUserId: userId,
     });
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + ACTIVITY_TTL_DAYS);
+    Activity.create({ actorId: userId, type: "created", eventId: event._id, expiresAt }).catch(() => {});
 
     res.status(201).json({ event });
   } catch (err) {

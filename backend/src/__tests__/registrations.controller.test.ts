@@ -8,6 +8,14 @@ import { Request, Response, NextFunction } from "express";
 import { createRegistration, cancelRegistration } from "../controllers/registrations.controller.js";
 import { Registration } from "../models/Registration.js";
 import { Event } from "../models/Event.js";
+import { Activity } from "../models/Activity.js";
+
+jest.mock("../models/Activity.js", () => ({
+  Activity: { create: jest.fn() },
+  ACTIVITY_TTL_DAYS: 7,
+}));
+
+const mockActivity = Activity as unknown as { create: jest.Mock };
 
 jest.mock("../models/Registration.js", () => ({
   Registration: {
@@ -81,6 +89,7 @@ describe("createRegistration", () => {
     mockRegistration.findOne.mockResolvedValue(null);
     mockRegistration.countDocuments.mockResolvedValue(0);
     mockRegistration.create.mockResolvedValue(STORED_REG);
+    mockActivity.create.mockResolvedValue({});
   });
 
   it("returns 201 with the registration on success", async () => {
@@ -165,6 +174,22 @@ describe("createRegistration", () => {
     await createRegistration(makeReq({ eventId: EVENT_ID }, {}, USER_ID), makeRes(), next);
 
     expect(next).toHaveBeenCalledWith(error);
+  });
+
+  it("fire-and-forget logs a 'registered' activity on success", async () => {
+    await createRegistration(makeReq({ eventId: EVENT_ID }, {}, USER_ID), makeRes(), makeNext());
+
+    expect(mockActivity.create).toHaveBeenCalledWith(
+      expect.objectContaining({ actorId: USER_ID, type: "registered", eventId: EVENT_ID }),
+    );
+  });
+
+  it("does not log activity when Registration.create fails", async () => {
+    mockRegistration.create.mockRejectedValue(new Error("DB error"));
+
+    await createRegistration(makeReq({ eventId: EVENT_ID }, {}, USER_ID), makeRes(), makeNext());
+
+    expect(mockActivity.create).not.toHaveBeenCalled();
   });
 });
 

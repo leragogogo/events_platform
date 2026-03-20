@@ -1,11 +1,28 @@
 <script setup lang="ts">
 import { useSearch } from "../composables/useSearch";
+import { useActivityFeed } from "../composables/useActivityFeed";
 import BaseInput from "../components/ui/BaseInput.vue";
 import BaseSpinner from "../components/ui/BaseSpinner.vue";
 import EmptyState from "../components/ui/EmptyState.vue";
 import EventCard from "../components/EventCard.vue";
 
 const { query, users, events, isLoading, isError, showResults } = useSearch();
+const {
+  activities,
+  isLoading: activityLoading,
+  isError: activityError,
+} = useActivityFeed();
+
+function timeAgo(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 </script>
 
 <template>
@@ -18,10 +35,42 @@ const { query, users, events, isLoading, isError, showResults } = useSearch();
     </div>
 
     <template v-if="!showResults">
-      <EmptyState
-        title="Search the platform"
-        description="Type at least 2 characters to search for people or events."
-      />
+      <section class="feed__section">
+        <h2 class="feed__section-title">Recent Activity</h2>
+
+        <div v-if="activityLoading" class="feed__spinner">
+          <BaseSpinner size="lg" />
+        </div>
+
+        <EmptyState
+          v-else-if="activityError"
+          title="Something went wrong"
+          description="Failed to load activity. Please try again."
+        />
+
+        <EmptyState
+          v-else-if="activities.length === 0"
+          title="No recent activity"
+          description="Connect with people to see when they create or register for events."
+        />
+
+        <ul v-else class="feed__activity-list">
+          <li v-for="item in activities" :key="item._id" class="activity-item">
+            <RouterLink
+              :to="{ name: 'user-profile', params: { id: item.actorId._id } }"
+              class="activity-item__actor"
+            >{{ item.actorId.name }}</RouterLink>
+            <span class="activity-item__verb">
+              {{ item.type === "created" ? "created" : "registered for" }}
+            </span>
+            <RouterLink
+              :to="{ name: 'event-detail', params: { id: item.eventId._id } }"
+              class="activity-item__event"
+            >{{ item.eventId.title }}</RouterLink>
+            <span class="activity-item__time">{{ timeAgo(item.createdAt) }}</span>
+          </li>
+        </ul>
+      </section>
     </template>
 
     <template v-else-if="isLoading">
@@ -132,5 +181,51 @@ const { query, users, events, isLoading, isError, showResults } = useSearch();
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+
+.feed__activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.activity-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background: #fff;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+}
+
+.activity-item__actor {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+  text-decoration: none;
+}
+.activity-item__actor:hover { text-decoration: underline; }
+
+.activity-item__verb {
+  color: var(--color-neutral-500);
+}
+
+.activity-item__event {
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+.activity-item__event:hover { text-decoration: underline; }
+
+.activity-item__time {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-neutral-400);
+  white-space: nowrap;
 }
 </style>

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { Registration } from "../models/Registration.js";
 import { Event } from "../models/Event.js";
+import { Activity, ACTIVITY_TTL_DAYS } from "../models/Activity.js";
 import { AuthRequest } from "../middleware/auth.middleware.js";
 
 /** POST /api/registrations. Register the authenticated user for an event. */
@@ -33,6 +34,11 @@ export async function createRegistration(req: Request, res: Response, next: Next
     }
 
     const registration = await Registration.create({ userId, eventId });
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + ACTIVITY_TTL_DAYS);
+    Activity.create({ actorId: userId, type: "registered", eventId, expiresAt }).catch(() => {});
+
     res.status(201).json({ registration });
   } catch (err) {
     next(err);

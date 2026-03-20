@@ -1,13 +1,25 @@
 import client from "./client";
-import type { Event } from "./events";
 
 export type ActivityType = "created" | "registered";
 
+export interface ActivityActor {
+  _id: string;
+  name: string;
+}
+
+export interface ActivityEvent {
+  _id: string;
+  title: string;
+  dateTime: string;
+  city: string;
+  category: string;
+}
+
 export interface Activity {
   _id: string;
-  actorId: string;
+  actorId: ActivityActor;
   type: ActivityType;
-  eventId: string | Event;
+  eventId: ActivityEvent;
   createdAt: string;
   expiresAt: string;
 }

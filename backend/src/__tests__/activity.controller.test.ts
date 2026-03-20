@@ -80,8 +80,15 @@ function makeNext(): NextFunction {
   return jest.fn() as unknown as NextFunction;
 }
 
+let actorPopulateMock: jest.Mock;
+let eventPopulateMock: jest.Mock;
+let activitySortMock: jest.Mock;
+
 function mockActivityFind(data: unknown[]) {
-  mockActivity.find.mockReturnValue({ sort: jest.fn().mockResolvedValue(data) });
+  activitySortMock = jest.fn().mockResolvedValue(data);
+  eventPopulateMock = jest.fn().mockReturnValue({ sort: activitySortMock });
+  actorPopulateMock = jest.fn().mockReturnValue({ populate: eventPopulateMock });
+  mockActivity.find.mockReturnValue({ populate: actorPopulateMock });
 }
 
 describe("logActivity", () => {
@@ -215,9 +222,23 @@ describe("getActivityFeed", () => {
     expect(next).toHaveBeenCalledWith(error);
   });
 
+  it("populates actorId with the name field", async () => {
+    await getActivityFeed(makeReq({}, {}, USER_ID), makeRes(), makeNext());
+    expect(actorPopulateMock).toHaveBeenCalledWith("actorId", "name");
+  });
+
+  it("populates eventId with title, dateTime, city and category fields", async () => {
+    await getActivityFeed(makeReq({}, {}, USER_ID), makeRes(), makeNext());
+    expect(eventPopulateMock).toHaveBeenCalledWith("eventId", "title dateTime city category");
+  });
+
   it("calls next(err) when Activity.find throws", async () => {
     const error = new Error("DB error");
-    mockActivity.find.mockReturnValue({ sort: jest.fn().mockRejectedValue(error) });
+    mockActivity.find.mockReturnValue({
+      populate: jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnValue({ sort: jest.fn().mockRejectedValue(error) }),
+      }),
+    });
     const next = makeNext();
 
     await getActivityFeed(makeReq({}, {}, USER_ID), makeRes(), next);
@@ -252,9 +273,23 @@ describe("getActivitiesByUserId", () => {
     expect(mockActivity.find).toHaveBeenCalledWith({ actorId: OTHER_ID });
   });
 
+  it("populates actorId with the name field", async () => {
+    await getActivitiesByUserId(makeReq({}, { userId: OTHER_ID }), makeRes(), makeNext());
+    expect(actorPopulateMock).toHaveBeenCalledWith("actorId", "name");
+  });
+
+  it("populates eventId with title, dateTime, city and category fields", async () => {
+    await getActivitiesByUserId(makeReq({}, { userId: OTHER_ID }), makeRes(), makeNext());
+    expect(eventPopulateMock).toHaveBeenCalledWith("eventId", "title dateTime city category");
+  });
+
   it("calls next(err) when Activity.find throws", async () => {
     const error = new Error("DB error");
-    mockActivity.find.mockReturnValue({ sort: jest.fn().mockRejectedValue(error) });
+    mockActivity.find.mockReturnValue({
+      populate: jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnValue({ sort: jest.fn().mockRejectedValue(error) }),
+      }),
+    });
     const next = makeNext();
 
     await getActivitiesByUserId(makeReq({}, { userId: OTHER_ID }), makeRes(), next);

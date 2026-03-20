@@ -46,6 +46,8 @@ export async function getActivityFeed(req: Request, res: Response, next: NextFun
     );
 
     const activities = await Activity.find({ actorId: { $in: connectedUserIds } })
+      .populate("actorId", "name")
+      .populate("eventId", "title dateTime city category")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ activities });
@@ -58,6 +60,8 @@ export async function getActivityFeed(req: Request, res: Response, next: NextFun
 export async function getActivitiesByUserId(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const activities = await Activity.find({ actorId: req.params.userId })
+      .populate("actorId", "name")
+      .populate("eventId", "title dateTime city category")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ activities });

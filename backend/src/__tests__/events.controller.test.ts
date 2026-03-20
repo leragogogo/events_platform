@@ -14,6 +14,14 @@ import {
     deleteEvent,
 } from "../controllers/events.controller.js";
 import { Event, EVENT_CATEGORIES } from "../models/Event.js";
+import { Activity } from "../models/Activity.js";
+
+jest.mock("../models/Activity.js", () => ({
+    Activity: { create: jest.fn() },
+    ACTIVITY_TTL_DAYS: 7,
+}));
+
+const mockActivity = Activity as unknown as { create: jest.Mock };
 
 jest.mock("../models/Event.js", () => ({
     Event: {
@@ -86,6 +94,7 @@ function getErrors(res: Response): Record<string, string> {
 describe("createEvent", () => {
     beforeEach(() => {
         mockEvent.create.mockResolvedValue(STORED_EVENT);
+        mockActivity.create.mockResolvedValue({});
     });
 
     it("returns 201 with the created event on valid input", async () => {
@@ -253,6 +262,22 @@ describe("createEvent", () => {
         await createEvent(makeReq(VALID_BODY, {}, OWNER_ID), makeRes(), next);
 
         expect(next).toHaveBeenCalledWith(error);
+    });
+
+    it("fire-and-forget logs a 'created' activity on success", async () => {
+        await createEvent(makeReq(VALID_BODY, {}, OWNER_ID), makeRes(), makeNext());
+
+        expect(mockActivity.create).toHaveBeenCalledWith(
+            expect.objectContaining({ actorId: OWNER_ID, type: "created", eventId: STORED_EVENT._id }),
+        );
+    });
+
+    it("does not log activity when Event.create fails", async () => {
+        mockEvent.create.mockRejectedValue(new Error("DB error"));
+
+        await createEvent(makeReq(VALID_BODY, {}, OWNER_ID), makeRes(), makeNext());
+
+        expect(mockActivity.create).not.toHaveBeenCalled();
     });
 });
 
