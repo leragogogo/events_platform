@@ -71,7 +71,7 @@ defineEmits<{ submit: [] }>();
           :id="id"
           v-model="address"
           placeholder="Street address, city, country"
-          :error="!!error"
+          :error="error"
           @blur="handleAddressBlur"
         />
         <p v-if="isGeocoding" class="event-form__geocoding">Verifying address…</p>

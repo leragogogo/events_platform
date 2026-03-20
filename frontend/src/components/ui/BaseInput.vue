@@ -27,7 +27,6 @@ defineEmits<{
       :class="['input', { 'input--error': error }]"
       @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
-    <p v-if="error" class="input__error">{{ error }}</p>
   </div>
 </template>
 
@@ -53,9 +52,4 @@ defineEmits<{
 .input:disabled { background-color: var(--color-neutral-100); cursor: not-allowed; }
 .input--error { border-color: var(--color-danger); }
 .input--error:focus { box-shadow: 0 0 0 3px rgb(220 38 38 / 0.15); }
-
-.input__error {
-  font-size: var(--font-size-xs);
-  color: var(--color-danger);
-}
 </style>

@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import type { Event, EventPayload } from "../api/events";
 import { geocodeAddress, type GeocodeResult } from "../api/geocoding";
 
@@ -26,13 +26,31 @@ export function useEventForm() {
   const geocodeError = ref("");
   const lastGeocodedAddress = ref("");
 
+  // Needs geocoding when address is non-empty AND we don't already have valid
+  // coordinates for exactly this address. Mirrors the skip condition in handleAddressBlur.
   const needsGeocode = computed(
-    () => address.value.trim() !== "" && address.value.trim() !== lastGeocodedAddress.value
+    () =>
+      address.value.trim() !== "" &&
+      (geocodedResult.value === null || address.value.trim() !== lastGeocodedAddress.value)
   );
+
+  // Clear each field's error as soon as the user edits it so stale error
+  // messages don't linger after the field has been corrected.
+  watch(title,       () => { errors.value.title       = undefined; });
+  watch(description, () => { errors.value.description = undefined; });
+  watch(category,    () => { errors.value.category    = undefined; });
+  watch(dateTime,    () => { errors.value.dateTime    = undefined; });
+  watch(capacity,    () => { errors.value.capacity    = undefined; });
+  watch(address, () => {
+    errors.value.address     = undefined;
+    errors.value.coordinates = undefined;
+    geocodeError.value       = "";
+  });
 
   async function handleAddressBlur() {
     const trimmed = address.value.trim();
-    if (!trimmed || trimmed === lastGeocodedAddress.value) return;
+    // Skip only when we already have valid coordinates for this exact address.
+    if (!trimmed || (geocodedResult.value !== null && trimmed === lastGeocodedAddress.value)) return;
     geocodeError.value = "";
     geocodedResult.value = null;
     isGeocoding.value = true;
