@@ -1,4 +1,6 @@
 <script setup lang="ts">
+defineOptions({ inheritAttrs: false });
+
 defineProps<{
   modelValue: string | number;
   type?: string;
@@ -16,6 +18,7 @@ defineEmits<{
 <template>
   <div class="input-wrapper">
     <input
+      v-bind="$attrs"
       :id="id"
       :type="type ?? 'text'"
       :value="modelValue"

@@ -24,8 +24,9 @@ const { data: categoriesData } = useQuery({
 
 const {
   title, description, category, dateTime,
-  address, city, longitude, latitude, capacity,
+  address, capacity,
   errors, serverError, isPending, submit, fill,
+  isGeocoding, geocodeError, handleAddressBlur,
 } = useEditEvent(id);
 
 watch(event, (e) => { if (e) fill(e); }, { immediate: true });
@@ -53,13 +54,13 @@ watch(event, (e) => { if (e) fill(e); }, { immediate: true });
         v-model:category="category"
         v-model:dateTime="dateTime"
         v-model:address="address"
-        v-model:city="city"
-        v-model:longitude="longitude"
-        v-model:latitude="latitude"
         v-model:capacity="capacity"
         :errors="errors"
         :categories="categoriesData ?? []"
         :loading="isPending"
+        :isGeocoding="isGeocoding"
+        :geocodeError="geocodeError"
+        :handleAddressBlur="handleAddressBlur"
         submit-label="Save changes"
         @submit="submit"
       />

@@ -1,5 +1,8 @@
 import { useEventForm } from "../../composables/useEventForm";
+import { geocodeAddress } from "../../api/geocoding";
 import type { Event } from "../../api/events";
+
+vi.mock("../../api/geocoding", () => ({ geocodeAddress: vi.fn() }));
 
 const FUTURE = "2099-12-31T23:59";
 
@@ -17,16 +20,14 @@ const mockEvent: Event = {
   createdAt: "2024-01-01T00:00:00.000Z",
 };
 
+/** Pre-seeds a fully valid form, including geocodedResult, via fill() */
 function filled() {
   const form = useEventForm();
+  form.fill(mockEvent);
   form.title.value = "Test Event";
   form.description.value = "A description";
   form.category.value = "Music";
   form.dateTime.value = FUTURE;
-  form.address.value = "123 Main St";
-  form.city.value = "London";
-  form.longitude.value = "-0.1276";
-  form.latitude.value = "51.5074";
   form.capacity.value = "100";
   return form;
 }
@@ -75,32 +76,17 @@ describe("useEventForm", () => {
       expect(form.errors.value.address).toBe("Address is required");
     });
 
-    it("sets city error when empty", () => {
-      const form = filled();
-      form.city.value = "";
+    it("sets coordinates error when geocoding has not been done", () => {
+      const form = useEventForm();
+      form.title.value = "Test Event";
+      form.description.value = "A description";
+      form.category.value = "Music";
+      form.dateTime.value = FUTURE;
+      form.address.value = "123 Main St";
+      form.capacity.value = "100";
+      // geocodedResult is null — no fill, no geocode
       expect(form.validate()).toBe(false);
-      expect(form.errors.value.city).toBe("City is required");
-    });
-
-    it("sets coordinates error when longitude is missing", () => {
-      const form = filled();
-      form.longitude.value = "";
-      expect(form.validate()).toBe(false);
-      expect(form.errors.value.coordinates).toBe("Longitude and latitude are required");
-    });
-
-    it("sets coordinates error when latitude is missing", () => {
-      const form = filled();
-      form.latitude.value = "";
-      expect(form.validate()).toBe(false);
-      expect(form.errors.value.coordinates).toBe("Longitude and latitude are required");
-    });
-
-    it("sets coordinates error when values are not valid numbers", () => {
-      const form = filled();
-      form.longitude.value = "abc";
-      expect(form.validate()).toBe(false);
-      expect(form.errors.value.coordinates).toBe("Enter valid numbers");
+      expect(form.errors.value.coordinates).toBe("A valid address with geocoding is required");
     });
 
     it("sets capacity error when empty", () => {
@@ -132,17 +118,15 @@ describe("useEventForm", () => {
   });
 
   describe("toPayload", () => {
-    it("trims title, description, address and city", () => {
+    it("trims title, description and address", () => {
       const form = filled();
       form.title.value = "  Test Event  ";
       form.description.value = "  A description  ";
       form.address.value = "  123 Main St  ";
-      form.city.value = "  London  ";
       const payload = form.toPayload();
       expect(payload.title).toBe("Test Event");
       expect(payload.description).toBe("A description");
       expect(payload.address).toBe("123 Main St");
-      expect(payload.city).toBe("London");
     });
 
     it("converts dateTime to ISO string", () => {
@@ -151,7 +135,13 @@ describe("useEventForm", () => {
       expect(payload.dateTime).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     });
 
-    it("parses coordinates as floats", () => {
+    it("uses geocoded city", () => {
+      const form = filled();
+      const payload = form.toPayload();
+      expect(payload.city).toBe("London");
+    });
+
+    it("uses geocoded coordinates", () => {
       const form = filled();
       const payload = form.toPayload();
       expect(payload.coordinates).toEqual([-0.1276, 51.5074]);
@@ -173,7 +163,106 @@ describe("useEventForm", () => {
       expect(form.description.value).toBe(mockEvent.description);
       expect(form.category.value).toBe(mockEvent.category);
       expect(form.address.value).toBe(mockEvent.address);
-      expect(form.city.value).toBe(mockEvent.city);
+    });
+
+    it("pre-populates geocodedResult from event coordinates and city", () => {
+      const form = useEventForm();
+      form.fill(mockEvent);
+      expect(form.geocodedResult.value).toEqual({
+        coordinates: mockEvent.coordinates,
+        city: mockEvent.city,
+      });
+    });
+
+    it("marks address as already geocoded so blur is a no-op", async () => {
+      const form = useEventForm();
+      form.fill(mockEvent);
+      // address matches lastGeocodedAddress — handleAddressBlur should short-circuit
+      await form.handleAddressBlur();
+      expect(geocodeAddress).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("handleAddressBlur", () => {
+    beforeEach(() => {
+      vi.mocked(geocodeAddress).mockResolvedValue({
+        coordinates: [-0.1276, 51.5074],
+        city: "London",
+      });
+    });
+
+    it("calls geocodeAddress with the trimmed address", async () => {
+      const form = useEventForm();
+      form.address.value = "  10 Downing Street, London  ";
+      await form.handleAddressBlur();
+      expect(geocodeAddress).toHaveBeenCalledWith("10 Downing Street, London");
+    });
+
+    it("is a no-op when address is empty", async () => {
+      const form = useEventForm();
+      form.address.value = "";
+      await form.handleAddressBlur();
+      expect(geocodeAddress).not.toHaveBeenCalled();
+    });
+
+    it("is a no-op when address equals last geocoded address", async () => {
+      const form = useEventForm();
+      form.fill(mockEvent); // sets lastGeocodedAddress to mockEvent.address
+      form.address.value = mockEvent.address;
+      await form.handleAddressBlur();
+      expect(geocodeAddress).not.toHaveBeenCalled();
+    });
+
+    it("sets geocodedResult on success", async () => {
+      const form = useEventForm();
+      form.address.value = "10 Downing Street, London";
+      await form.handleAddressBlur();
+      expect(form.geocodedResult.value).toEqual({
+        coordinates: [-0.1276, 51.5074],
+        city: "London",
+      });
+    });
+
+    it("sets geocodeError when result is null (address not found)", async () => {
+      vi.mocked(geocodeAddress).mockResolvedValue(null);
+      const form = useEventForm();
+      form.address.value = "zzz not a real place zzz";
+      await form.handleAddressBlur();
+      expect(form.geocodeError.value).toBe("Address not found. Try a more specific address.");
+      expect(form.geocodedResult.value).toBeNull();
+    });
+
+    it("sets geocodeError on network failure", async () => {
+      vi.mocked(geocodeAddress).mockRejectedValue(new Error("Network error"));
+      const form = useEventForm();
+      form.address.value = "10 Downing Street, London";
+      await form.handleAddressBlur();
+      expect(form.geocodeError.value).toBe("Geocoding failed. Check your connection and try again.");
+    });
+
+    it("resets isGeocoding to false after success", async () => {
+      const form = useEventForm();
+      form.address.value = "10 Downing Street, London";
+      await form.handleAddressBlur();
+      expect(form.isGeocoding.value).toBe(false);
+    });
+
+    it("resets isGeocoding to false after failure", async () => {
+      vi.mocked(geocodeAddress).mockRejectedValue(new Error("fail"));
+      const form = useEventForm();
+      form.address.value = "10 Downing Street, London";
+      await form.handleAddressBlur();
+      expect(form.isGeocoding.value).toBe(false);
+    });
+
+    it("clears previous geocodedResult before re-geocoding a new address", async () => {
+      const form = useEventForm();
+      form.fill(mockEvent); // seeds geocodedResult with London
+      form.address.value = "A completely different address";
+      // Make geocodeAddress resolve null so we can inspect the cleared state via error
+      vi.mocked(geocodeAddress).mockResolvedValue(null);
+      await form.handleAddressBlur();
+      expect(form.geocodedResult.value).toBeNull();
     });
   });
 });

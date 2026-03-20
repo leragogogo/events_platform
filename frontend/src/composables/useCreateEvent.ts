@@ -13,6 +13,7 @@ export function useCreateEvent() {
 
   async function submit() {
     serverError.value = "";
+    if (form.needsGeocode.value) await form.handleAddressBlur();
     if (!form.validate()) return;
 
     isPending.value = true;

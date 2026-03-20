@@ -1,5 +1,6 @@
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import type { Event, EventPayload } from "../api/events";
+import { geocodeAddress, type GeocodeResult } from "../api/geocoding";
 
 export interface EventFormErrors {
   title?: string;
@@ -7,7 +8,6 @@ export interface EventFormErrors {
   category?: string;
   dateTime?: string;
   address?: string;
-  city?: string;
   coordinates?: string;
   capacity?: string;
 }
@@ -18,11 +18,38 @@ export function useEventForm() {
   const category = ref("");
   const dateTime = ref("");
   const address = ref("");
-  const city = ref("");
-  const longitude = ref("");
-  const latitude = ref("");
   const capacity = ref("");
   const errors = ref<EventFormErrors>({});
+
+  const geocodedResult = ref<GeocodeResult | null>(null);
+  const isGeocoding = ref(false);
+  const geocodeError = ref("");
+  const lastGeocodedAddress = ref("");
+
+  const needsGeocode = computed(
+    () => address.value.trim() !== "" && address.value.trim() !== lastGeocodedAddress.value
+  );
+
+  async function handleAddressBlur() {
+    const trimmed = address.value.trim();
+    if (!trimmed || trimmed === lastGeocodedAddress.value) return;
+    geocodeError.value = "";
+    geocodedResult.value = null;
+    isGeocoding.value = true;
+    try {
+      const result = await geocodeAddress(trimmed);
+      if (result) {
+        geocodedResult.value = result;
+        lastGeocodedAddress.value = trimmed;
+      } else {
+        geocodeError.value = "Address not found. Try a more specific address.";
+      }
+    } catch {
+      geocodeError.value = "Geocoding failed. Check your connection and try again.";
+    } finally {
+      isGeocoding.value = false;
+    }
+  }
 
   function validate(): boolean {
     const e: EventFormErrors = {};
@@ -38,12 +65,9 @@ export function useEventForm() {
     }
 
     if (!address.value.trim()) e.address = "Address is required";
-    if (!city.value.trim()) e.city = "City is required";
 
-    if (!longitude.value || !latitude.value) {
-      e.coordinates = "Longitude and latitude are required";
-    } else if (isNaN(parseFloat(longitude.value)) || isNaN(parseFloat(latitude.value))) {
-      e.coordinates = "Enter valid numbers";
+    if (!geocodedResult.value) {
+      e.coordinates = "A valid address with geocoding is required";
     }
 
     if (!capacity.value) {
@@ -60,14 +84,15 @@ export function useEventForm() {
   }
 
   function toPayload(): EventPayload {
+    const { coordinates, city } = geocodedResult.value!;
     return {
       title: title.value.trim(),
       description: description.value.trim(),
       category: category.value,
       dateTime: new Date(dateTime.value).toISOString(),
       address: address.value.trim(),
-      city: city.value.trim(),
-      coordinates: [parseFloat(longitude.value), parseFloat(latitude.value)],
+      city,
+      coordinates,
       capacity: Number(capacity.value),
     };
   }
@@ -78,15 +103,14 @@ export function useEventForm() {
     category.value = event.category;
     dateTime.value = event.dateTime.slice(0, 16);
     address.value = event.address;
-    city.value = event.city;
-    longitude.value = String(event.coordinates[0]);
-    latitude.value = String(event.coordinates[1]);
     capacity.value = String(event.capacity);
+    geocodedResult.value = { coordinates: event.coordinates, city: event.city };
+    lastGeocodedAddress.value = event.address;
   }
 
   return {
-    title, description, category, dateTime,
-    address, city, longitude, latitude, capacity,
+    title, description, category, dateTime, address, capacity,
     errors, validate, toPayload, fill,
+    geocodedResult, isGeocoding, geocodeError, needsGeocode, handleAddressBlur,
   };
 }

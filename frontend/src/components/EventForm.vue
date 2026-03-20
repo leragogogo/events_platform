@@ -9,9 +9,6 @@ const description = defineModel<string>("description", { required: true });
 const category = defineModel<string>("category", { required: true });
 const dateTime = defineModel<string>("dateTime", { required: true });
 const address = defineModel<string>("address", { required: true });
-const city = defineModel<string>("city", { required: true });
-const longitude = defineModel<string>("longitude", { required: true });
-const latitude = defineModel<string>("latitude", { required: true });
 const capacity = defineModel<string>("capacity", { required: true });
 
 defineProps<{
@@ -19,6 +16,9 @@ defineProps<{
   categories: string[];
   loading?: boolean;
   submitLabel?: string;
+  isGeocoding?: boolean;
+  geocodeError?: string;
+  handleAddressBlur: () => void;
 }>();
 
 defineEmits<{ submit: [] }>();
@@ -65,42 +65,16 @@ defineEmits<{ submit: [] }>();
       </template>
     </FormField>
 
-    <FormField label="Address" required :error="errors.address">
+    <FormField label="Address" required :error="geocodeError || errors.address || errors.coordinates">
       <template #default="{ id, error }">
-        <BaseInput :id="id" v-model="address" placeholder="Street address" :error="error" />
-      </template>
-    </FormField>
-
-    <FormField label="City" required :error="errors.city">
-      <template #default="{ id, error }">
-        <BaseInput :id="id" v-model="city" placeholder="City" :error="error" />
-      </template>
-    </FormField>
-
-    <FormField
-      label="Coordinates"
-      required
-      hint="Longitude and latitude (e.g. -0.1276, 51.5074)"
-      :error="errors.coordinates"
-    >
-      <template #default="{ id }">
-        <div class="event-form__coords">
-          <BaseInput
-            :id="id"
-            v-model="longitude"
-            type="number"
-            step="any"
-            placeholder="Longitude"
-            :error="errors.coordinates"
-          />
-          <BaseInput
-            v-model="latitude"
-            type="number"
-            step="any"
-            placeholder="Latitude"
-            :error="errors.coordinates"
-          />
-        </div>
+        <BaseInput
+          :id="id"
+          v-model="address"
+          placeholder="Street address, city, country"
+          :error="!!error"
+          @blur="handleAddressBlur"
+        />
+        <p v-if="isGeocoding" class="event-form__geocoding">Verifying address…</p>
       </template>
     </FormField>
 
@@ -173,10 +147,10 @@ defineEmits<{ submit: [] }>();
 }
 .select--error { border-color: var(--color-danger); }
 
-.event-form__coords {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
+.event-form__geocoding {
+  font-size: var(--font-size-xs);
+  color: var(--color-neutral-500);
+  margin-top: var(--space-1);
 }
 
 .event-form__actions {

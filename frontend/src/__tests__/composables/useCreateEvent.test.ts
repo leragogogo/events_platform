@@ -2,10 +2,12 @@ import { useCreateEvent } from "../../composables/useCreateEvent";
 import { useRouter } from "vue-router";
 import { useQueryClient } from "@tanstack/vue-query";
 import { createEvent } from "../../api/events";
+import { geocodeAddress } from "../../api/geocoding";
 
 vi.mock("vue-router", () => ({ useRouter: vi.fn() }));
 vi.mock("@tanstack/vue-query", () => ({ useQueryClient: vi.fn() }));
 vi.mock("../../api/events", () => ({ createEvent: vi.fn() }));
+vi.mock("../../api/geocoding", () => ({ geocodeAddress: vi.fn() }));
 
 const FUTURE = "2099-12-31T23:59";
 
@@ -33,6 +35,7 @@ describe("useCreateEvent", () => {
     vi.mocked(useRouter).mockReturnValue({ push } as any);
     vi.mocked(useQueryClient).mockReturnValue({ invalidateQueries } as any);
     vi.mocked(createEvent).mockResolvedValue({ data: { event: mockCreatedEvent } } as any);
+    vi.mocked(geocodeAddress).mockResolvedValue({ coordinates: [-0.1276, 51.5074], city: "London" });
   });
 
   function setup() {
@@ -42,10 +45,8 @@ describe("useCreateEvent", () => {
     form.category.value = "Music";
     form.dateTime.value = FUTURE;
     form.address.value = "123 Main St";
-    form.city.value = "London";
-    form.longitude.value = "-0.1276";
-    form.latitude.value = "51.5074";
     form.capacity.value = "100";
+    form.geocodedResult.value = { coordinates: [-0.1276, 51.5074], city: "London" };
     return form;
   }
 
@@ -115,6 +116,20 @@ describe("useCreateEvent", () => {
       const { isPending, submit } = setup();
       await submit();
       expect(isPending.value).toBe(false);
+    });
+
+    it("geocodes address on submit if address was not blurred", async () => {
+      vi.mocked(geocodeAddress).mockResolvedValue({ coordinates: [-0.1276, 51.5074], city: "London" });
+      const form = useCreateEvent();
+      form.title.value = "Test Event";
+      form.description.value = "A description";
+      form.category.value = "Music";
+      form.dateTime.value = FUTURE;
+      form.address.value = "10 Downing Street, London";
+      form.capacity.value = "100";
+      // geocodedResult is null and address does not match lastGeocodedAddress → needsGeocode is true
+      await form.submit();
+      expect(geocodeAddress).toHaveBeenCalledWith("10 Downing Street, London");
     });
   });
 });

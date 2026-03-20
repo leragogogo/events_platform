@@ -2,10 +2,12 @@ import { useEditEvent } from "../../composables/useEditEvent";
 import { useRouter } from "vue-router";
 import { useQueryClient } from "@tanstack/vue-query";
 import { updateEvent } from "../../api/events";
+import { geocodeAddress } from "../../api/geocoding";
 
 vi.mock("vue-router", () => ({ useRouter: vi.fn() }));
 vi.mock("@tanstack/vue-query", () => ({ useQueryClient: vi.fn() }));
 vi.mock("../../api/events", () => ({ updateEvent: vi.fn() }));
+vi.mock("../../api/geocoding", () => ({ geocodeAddress: vi.fn() }));
 
 const EVENT_ID = "event-123";
 const FUTURE = "2099-12-31T23:59";
@@ -20,6 +22,7 @@ describe("useEditEvent", () => {
     vi.mocked(useRouter).mockReturnValue({ push } as any);
     vi.mocked(useQueryClient).mockReturnValue({ invalidateQueries } as any);
     vi.mocked(updateEvent).mockResolvedValue({ data: { event: {} } } as any);
+    vi.mocked(geocodeAddress).mockResolvedValue({ coordinates: [-2.2426, 53.4808], city: "Manchester" });
   });
 
   function setup() {
@@ -29,10 +32,8 @@ describe("useEditEvent", () => {
     form.category.value = "Sports";
     form.dateTime.value = FUTURE;
     form.address.value = "456 Other St";
-    form.city.value = "Manchester";
-    form.longitude.value = "-2.2426";
-    form.latitude.value = "53.4808";
     form.capacity.value = "50";
+    form.geocodedResult.value = { coordinates: [-2.2426, 53.4808], city: "Manchester" };
     return form;
   }
 
@@ -97,6 +98,20 @@ describe("useEditEvent", () => {
       const { isPending, submit } = setup();
       await submit();
       expect(isPending.value).toBe(false);
+    });
+
+    it("geocodes address on submit if address was not blurred", async () => {
+      vi.mocked(geocodeAddress).mockResolvedValue({ coordinates: [-2.2426, 53.4808], city: "Manchester" });
+      const form = useEditEvent(EVENT_ID);
+      form.title.value = "Updated Event";
+      form.description.value = "Updated description";
+      form.category.value = "Sports";
+      form.dateTime.value = FUTURE;
+      form.address.value = "456 Other St, Manchester";
+      form.capacity.value = "50";
+      // geocodedResult is null and address does not match lastGeocodedAddress → needsGeocode is true
+      await form.submit();
+      expect(geocodeAddress).toHaveBeenCalledWith("456 Other St, Manchester");
     });
   });
 });

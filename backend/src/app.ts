@@ -8,6 +8,7 @@ import registrationsRoutes from "./routes/registrations.routes.js";
 import connectionsRoutes from "./routes/connections.routes.js";
 import activityRoutes from "./routes/activity.routes.js";
 import usersRoutes from "./routes/users.routes.js";
+import geocodingRoutes from "./routes/geocoding.routes.js";
 
 import { errorMiddleware } from "./middleware/error.middleware.js";
 
@@ -24,6 +25,7 @@ export function createApp() {
   app.use("/api/connections", connectionsRoutes);
   app.use("/api/activity", activityRoutes);
   app.use("/api/users", usersRoutes);
+  app.use("/api/geocode", geocodingRoutes);
 
   app.use(errorMiddleware);
   return app;
