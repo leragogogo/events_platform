@@ -4,6 +4,8 @@ import { useRoute } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import { getUserProfile } from "../api/users";
 import type { UserProfileConnected } from "../api/users";
+import { useAuthStore } from "../stores/auth";
+import { useConnection } from "../composables/useConnection";
 import UserAvatar from "../components/ui/UserAvatar.vue";
 import BaseButton from "../components/ui/BaseButton.vue";
 import BaseSpinner from "../components/ui/BaseSpinner.vue";
@@ -13,11 +15,16 @@ import EventCard from "../components/EventCard.vue";
 
 const route = useRoute();
 const userId = route.params.id as string;
+const auth = useAuthStore();
 
 const { data: profile, isLoading, isError } = useQuery({
   queryKey: ["user-profile", userId],
   queryFn: () => getUserProfile(userId).then((r) => r.data),
 });
+
+const isOwnProfile = computed(() => auth.user?._id === userId);
+
+const { status, loading: connLoading, error: connError, connect, approve, decline, remove } = useConnection(userId);
 
 const isConnected = computed(
   () => profile.value != null && "createdEvents" in profile.value
@@ -50,7 +57,30 @@ function formatMemberSince(iso: string): string {
           <h1 class="profile-header__name">{{ profile.user.name }}</h1>
           <p class="profile-header__since">Member since {{ formatMemberSince(profile.user.createdAt) }}</p>
         </div>
-        <BaseButton variant="secondary" size="sm" disabled>Connect</BaseButton>
+
+        <!-- Connection actions -->
+        <div v-if="!isOwnProfile" class="profile-header__connection">
+          <p v-if="connError" class="profile-header__conn-error">{{ connError }}</p>
+
+          <template v-if="status === 'none'">
+            <BaseButton size="sm" :loading="connLoading" @click="connect">Connect</BaseButton>
+          </template>
+
+          <template v-else-if="status === 'pending_sent'">
+            <BaseButton size="sm" variant="secondary" disabled>Pending…</BaseButton>
+          </template>
+
+          <template v-else-if="status === 'pending_received'">
+            <BaseButton size="sm" :loading="connLoading" @click="approve">Approve</BaseButton>
+            <BaseButton size="sm" variant="secondary" :loading="connLoading" @click="decline">Decline</BaseButton>
+          </template>
+
+          <template v-else-if="status === 'approved'">
+            <BaseButton size="sm" variant="secondary" :loading="connLoading" @click="remove">
+              Remove connection
+            </BaseButton>
+          </template>
+        </div>
       </div>
 
       <!-- Connected: show full event lists -->
@@ -84,7 +114,7 @@ function formatMemberSince(iso: string): string {
             <span class="profile-count__label">Events attended</span>
           </div>
         </div>
-        <p class="profile-connect-hint">Connect to see this user's full event history.</p>
+        <p v-if="!isOwnProfile" class="profile-connect-hint">Connect to see this user's full event history.</p>
       </template>
     </template>
   </div>
@@ -120,6 +150,19 @@ function formatMemberSince(iso: string): string {
 .profile-header__since {
   font-size: var(--font-size-sm);
   color: var(--color-neutral-500);
+}
+
+.profile-header__connection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.profile-header__conn-error {
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+  width: 100%;
 }
 
 .profile-section {

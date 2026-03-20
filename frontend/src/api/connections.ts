@@ -2,10 +2,15 @@ import client from "./client";
 
 export type ConnectionStatus = "pending" | "approved" | "declined";
 
+export interface ConnectionUser {
+  _id: string;
+  name: string;
+}
+
 export interface Connection {
   _id: string;
-  requesterId: string;
-  addresseeId: string;
+  requesterId: ConnectionUser;
+  addresseeId: ConnectionUser;
   status: ConnectionStatus;
   createdAt: string;
 }

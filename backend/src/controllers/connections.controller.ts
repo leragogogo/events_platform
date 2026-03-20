@@ -42,7 +42,9 @@ export async function getMyConnections(req: Request, res: Response, next: NextFu
 
     const connections = await Connection.find({
       $or: [{ requesterId: userId }, { addresseeId: userId }],
-    });
+    })
+      .populate("requesterId", "name")
+      .populate("addresseeId", "name");
 
     res.status(200).json({ connections });
   } catch (err) {

@@ -151,8 +151,15 @@ describe("initiateConnection", () => {
 });
 
 describe("getMyConnections", () => {
+  function mockFindWithPopulate(result: unknown[]) {
+    const populate2 = jest.fn().mockResolvedValue(result);
+    const populate1 = jest.fn().mockReturnValue({ populate: populate2 });
+    mockConnection.find.mockReturnValue({ populate: populate1 });
+    return { populate1, populate2 };
+  }
+
   it("returns 200 with all connections for the authenticated user", async () => {
-    mockConnection.find.mockResolvedValue([PENDING_CONN, APPROVED_CONN]);
+    mockFindWithPopulate([PENDING_CONN, APPROVED_CONN]);
     const res = makeRes();
     await getMyConnections(makeReq({}, {}, REQUESTER_ID), res, makeNext());
 
@@ -161,7 +168,7 @@ describe("getMyConnections", () => {
   });
 
   it("returns 200 with an empty array when no connections exist", async () => {
-    mockConnection.find.mockResolvedValue([]);
+    mockFindWithPopulate([]);
     const res = makeRes();
     await getMyConnections(makeReq({}, {}, REQUESTER_ID), res, makeNext());
 
@@ -170,7 +177,7 @@ describe("getMyConnections", () => {
   });
 
   it("queries by both requesterId and addresseeId for the current user", async () => {
-    mockConnection.find.mockResolvedValue([]);
+    mockFindWithPopulate([]);
     await getMyConnections(makeReq({}, {}, REQUESTER_ID), makeRes(), makeNext());
 
     expect(mockConnection.find).toHaveBeenCalledWith({
@@ -178,9 +185,19 @@ describe("getMyConnections", () => {
     });
   });
 
+  it("populates requesterId and addresseeId with name", async () => {
+    const { populate1, populate2 } = mockFindWithPopulate([]);
+    await getMyConnections(makeReq({}, {}, REQUESTER_ID), makeRes(), makeNext());
+
+    expect(populate1).toHaveBeenCalledWith("requesterId", "name");
+    expect(populate2).toHaveBeenCalledWith("addresseeId", "name");
+  });
+
   it("calls next(err) when Connection.find throws", async () => {
     const error = new Error("DB error");
-    mockConnection.find.mockRejectedValue(error);
+    const populate2 = jest.fn().mockRejectedValue(error);
+    const populate1 = jest.fn().mockReturnValue({ populate: populate2 });
+    mockConnection.find.mockReturnValue({ populate: populate1 });
     const next = makeNext();
 
     await getMyConnections(makeReq({}, {}, REQUESTER_ID), makeRes(), next);
