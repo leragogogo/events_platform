@@ -58,6 +58,38 @@ function validateEventFields(body: Record<string, unknown>): Record<string, stri
   return Object.keys(errors).length > 0 ? errors : null;
 }
 
+/**
+ * GET /api/events. Return all events with optional filters (auth required).
+ * Query params: category, dateFrom (ISO), dateTo (ISO)
+ * Selects only fields needed for map markers.
+ */
+export async function getAllEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { category, dateFrom, dateTo } = req.query as Record<string, string | undefined>;
+    const filter: Record<string, unknown> = {};
+
+    if (category) filter.category = category;
+
+    if (dateFrom || dateTo) {
+      const dt: Record<string, Date> = {};
+      if (dateFrom) dt.$gte = new Date(dateFrom);
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        dt.$lte = end;
+      }
+      filter.dateTime = dt;
+    }
+
+    const events = await Event.find(filter)
+      .select("title dateTime city category coordinates")
+
+    res.status(200).json({ events });
+  } catch (err) {
+    next(err);
+  }
+}
+
 /** POST /api/events. Create a new event (auth required) */
 export async function createEvent(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {

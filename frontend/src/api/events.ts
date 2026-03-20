@@ -52,3 +52,24 @@ export function updateEventField(id: string, field: keyof EventPayload, value: u
 export function deleteEvent(id: string) {
   return client.delete(`/events/${id}`);
 }
+
+/** Lean event projection returned by GET /api/events (map markers only). */
+export interface MapEvent {
+  _id: string;
+  title: string;
+  dateTime: string;
+  city: string;
+  category: string;
+  coordinates: [number, number];
+}
+
+export interface EventMapFilters {
+  category?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+/** GET /api/events with optional category/date filters. */
+export function getAllEvents(filters: EventMapFilters = {}) {
+  return client.get<{ events: MapEvent[] }>("/events", { params: filters });
+}

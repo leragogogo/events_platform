@@ -6,6 +6,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import {
+    getAllEvents,
     createEvent,
     getCategories,
     getEventById,
@@ -57,7 +58,6 @@ const VALID_BODY = {
     capacity: 100,
 };
 
-/** Stored event doc returned by Mongoose queries. */
 const STORED_EVENT = {
     _id: EVENT_ID,
     ...VALID_BODY,
@@ -68,8 +68,9 @@ function makeReq(
     body: Record<string, unknown> = {},
     params: Record<string, string> = {},
     userId?: string,
+    query: Record<string, string> = {},
 ): Request {
-    const req: Record<string, unknown> = { body, params };
+    const req: Record<string, unknown> = { body, params, query };
     if (userId !== undefined) req.user = { userId };
     return req as unknown as Request;
 }
@@ -424,6 +425,97 @@ describe("updateEventField", () => {
             makeRes(),
             next,
         );
+
+        expect(next).toHaveBeenCalledWith(error);
+    });
+});
+
+describe("getAllEvents", () => {
+    /** Chain mock: Event.find().select().limit() */
+    function mockFindChain(resolved: unknown) {
+        const limitMock = jest.fn().mockResolvedValue(resolved);
+        const selectMock = jest.fn().mockReturnValue({ limit: limitMock });
+        mockEvent.find.mockReturnValue({ select: selectMock });
+        return { selectMock, limitMock };
+    }
+
+    it("returns 200 with events when no filters provided", async () => {
+        const { limitMock } = mockFindChain([STORED_EVENT]);
+        const res = makeRes();
+        await getAllEvents(makeReq({}, {}, OWNER_ID, {}), res, makeNext());
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({ events: [STORED_EVENT] });
+        expect(limitMock).toHaveBeenCalledWith(200);
+    });
+
+    it("calls Event.find with empty filter when no query params", async () => {
+        mockFindChain([]);
+        await getAllEvents(makeReq({}, {}, OWNER_ID, {}), makeRes(), makeNext());
+
+        expect(mockEvent.find).toHaveBeenCalledWith({});
+    });
+
+    it("applies category filter when category query param provided", async () => {
+        mockFindChain([]);
+        await getAllEvents(makeReq({}, {}, OWNER_ID, { category: "Tech" }), makeRes(), makeNext());
+
+        expect(mockEvent.find).toHaveBeenCalledWith({ category: "Tech" });
+    });
+
+    it("applies $gte when only dateFrom provided", async () => {
+        mockFindChain([]);
+        await getAllEvents(makeReq({}, {}, OWNER_ID, { dateFrom: "2025-01-01" }), makeRes(), makeNext());
+
+        expect(mockEvent.find).toHaveBeenCalledWith({
+            dateTime: { $gte: new Date("2025-01-01") },
+        });
+    });
+
+    it("applies $lte set to end of day when only dateTo provided", async () => {
+        mockFindChain([]);
+        await getAllEvents(makeReq({}, {}, OWNER_ID, { dateTo: "2025-12-31" }), makeRes(), makeNext());
+
+        const call = (mockEvent.find as jest.Mock).mock.calls[0][0];
+        const endOfDay = new Date("2025-12-31");
+        endOfDay.setHours(23, 59, 59, 999);
+        expect(call.dateTime.$lte).toEqual(endOfDay);
+        expect(call.dateTime.$gte).toBeUndefined();
+    });
+
+    it("applies both $gte and $lte when dateFrom and dateTo provided", async () => {
+        mockFindChain([]);
+        await getAllEvents(
+            makeReq({}, {}, OWNER_ID, { dateFrom: "2025-01-01", dateTo: "2025-12-31" }),
+            makeRes(),
+            makeNext(),
+        );
+
+        const call = (mockEvent.find as jest.Mock).mock.calls[0][0];
+        expect(call.dateTime.$gte).toEqual(new Date("2025-01-01"));
+        expect(call.dateTime.$lte).toBeDefined();
+    });
+
+    it("calls .select with the correct projection fields", async () => {
+        const { selectMock } = mockFindChain([]);
+        await getAllEvents(makeReq({}, {}, OWNER_ID, {}), makeRes(), makeNext());
+
+        expect(selectMock).toHaveBeenCalledWith("title dateTime city category coordinates");
+    });
+
+    it("calls .limit(200)", async () => {
+        const { limitMock } = mockFindChain([]);
+        await getAllEvents(makeReq({}, {}, OWNER_ID, {}), makeRes(), makeNext());
+
+        expect(limitMock).toHaveBeenCalledWith(200);
+    });
+
+    it("calls next(err) on DB failure", async () => {
+        const error = new Error("DB error");
+        mockEvent.find.mockReturnValue({ select: jest.fn().mockReturnValue({ limit: jest.fn().mockRejectedValue(error) }) });
+        const next = makeNext();
+
+        await getAllEvents(makeReq({}, {}, OWNER_ID, {}), makeRes(), next);
 
         expect(next).toHaveBeenCalledWith(error);
     });

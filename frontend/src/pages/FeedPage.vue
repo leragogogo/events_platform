@@ -1,10 +1,16 @@
 <script setup lang="ts">
+import { ref, computed } from "vue";
+import { useQuery } from "@tanstack/vue-query";
 import { useSearch } from "../composables/useSearch";
 import { useActivityFeed } from "../composables/useActivityFeed";
+import { useEventMap } from "../composables/useEventMap";
+import { getCategories } from "../api/events";
 import BaseInput from "../components/ui/BaseInput.vue";
+import BaseButton from "../components/ui/BaseButton.vue";
 import BaseSpinner from "../components/ui/BaseSpinner.vue";
 import EmptyState from "../components/ui/EmptyState.vue";
 import EventCard from "../components/EventCard.vue";
+import EventMap from "../components/EventMap.vue";
 
 const { query, users, events, isLoading, isError, showResults } = useSearch();
 const {
@@ -12,6 +18,34 @@ const {
   isLoading: activityLoading,
   isError: activityError,
 } = useActivityFeed();
+
+// Map filters
+const mapCategory = ref("");
+const mapDateFrom = ref("");
+const mapDateTo = ref("");
+
+const hasActiveFilters = computed(
+  () => !!mapCategory.value || !!mapDateFrom.value || !!mapDateTo.value,
+);
+
+function clearFilters() {
+  mapCategory.value = "";
+  mapDateFrom.value = "";
+  mapDateTo.value = "";
+}
+
+const {
+  events: mapEvents,
+  isLoading: mapLoading,
+  isError: mapError,
+} = useEventMap({ category: mapCategory, dateFrom: mapDateFrom, dateTo: mapDateTo });
+
+// Categories for filter dropdown
+const { data: categoriesData } = useQuery({
+  queryKey: ["categories"],
+  queryFn: () => getCategories().then((r) => r.data.categories),
+});
+const categories = computed<string[]>(() => categoriesData.value ?? []);
 
 function timeAgo(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
@@ -27,7 +61,7 @@ function timeAgo(isoDate: string): string {
 
 <template>
   <div class="feed">
-    <div class="feed__search">
+    <div class="feed__content">
       <BaseInput
         v-model="query"
         placeholder="Search people or events..."
@@ -35,42 +69,83 @@ function timeAgo(isoDate: string): string {
     </div>
 
     <template v-if="!showResults">
-      <section class="feed__section">
-        <h2 class="feed__section-title">Recent Activity</h2>
-
-        <div v-if="activityLoading" class="feed__spinner">
-          <BaseSpinner size="lg" />
+      <section class="feed__map-section">
+        <div class="feed__filters">
+          <select v-model="mapCategory" class="feed__filter-select">
+            <option value="">All categories</option>
+            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+          </select>
+          <BaseInput
+            v-model="mapDateFrom"
+            type="date"
+            placeholder="From date"
+            class="feed__filter-date"
+          />
+          <BaseInput
+            v-model="mapDateTo"
+            type="date"
+            placeholder="To date"
+            class="feed__filter-date"
+          />
+          <BaseButton
+            v-if="hasActiveFilters"
+            variant="ghost"
+            size="sm"
+            @click="clearFilters"
+          >
+            Clear ×
+          </BaseButton>
         </div>
 
+        <div v-if="mapLoading" class="feed__spinner">
+          <BaseSpinner size="lg" />
+        </div>
         <EmptyState
-          v-else-if="activityError"
+          v-else-if="mapError"
           title="Something went wrong"
-          description="Failed to load activity. Please try again."
+          description="Failed to load map events. Please try again."
         />
-
-        <EmptyState
-          v-else-if="activities.length === 0"
-          title="No recent activity"
-          description="Connect with people to see when they create or register for events."
-        />
-
-        <ul v-else class="feed__activity-list">
-          <li v-for="item in activities" :key="item._id" class="activity-item">
-            <RouterLink
-              :to="{ name: 'user-profile', params: { id: item.actorId._id } }"
-              class="activity-item__actor"
-            >{{ item.actorId.name }}</RouterLink>
-            <span class="activity-item__verb">
-              {{ item.type === "created" ? "created" : "registered for" }}
-            </span>
-            <RouterLink
-              :to="{ name: 'event-detail', params: { id: item.eventId._id } }"
-              class="activity-item__event"
-            >{{ item.eventId.title }}</RouterLink>
-            <span class="activity-item__time">{{ timeAgo(item.createdAt) }}</span>
-          </li>
-        </ul>
+        <EventMap v-else :events="mapEvents" />
       </section>
+
+      <div class="feed__content">
+        <section class="feed__section">
+          <h2 class="feed__section-title">Recent Activity</h2>
+
+          <div v-if="activityLoading" class="feed__spinner">
+            <BaseSpinner size="lg" />
+          </div>
+
+          <EmptyState
+            v-else-if="activityError"
+            title="Something went wrong"
+            description="Failed to load activity. Please try again."
+          />
+
+          <EmptyState
+            v-else-if="activities.length === 0"
+            title="No recent activity"
+            description="Connect with people to see when they create or register for events."
+          />
+
+          <ul v-else class="feed__activity-list">
+            <li v-for="item in activities" :key="item._id" class="activity-item">
+              <RouterLink
+                :to="{ name: 'user-profile', params: { id: item.actorId._id } }"
+                class="activity-item__actor"
+              >{{ item.actorId.name }}</RouterLink>
+              <span class="activity-item__verb">
+                {{ item.type === "created" ? "created" : "registered for" }}
+              </span>
+              <RouterLink
+                :to="{ name: 'event-detail', params: { id: item.eventId._id } }"
+                class="activity-item__event"
+              >{{ item.eventId.title }}</RouterLink>
+              <span class="activity-item__time">{{ timeAgo(item.createdAt) }}</span>
+            </li>
+          </ul>
+        </section>
+      </div>
     </template>
 
     <template v-else-if="isLoading">
@@ -87,7 +162,7 @@ function timeAgo(isoDate: string): string {
     </template>
 
     <template v-else>
-      <section class="feed__section">
+      <section class="feed__section feed__content">
         <h2 class="feed__section-title">People</h2>
         <p v-if="users.length === 0" class="feed__empty">No people found.</p>
         <ul v-else class="feed__people">
@@ -102,7 +177,7 @@ function timeAgo(isoDate: string): string {
         </ul>
       </section>
 
-      <section class="feed__section">
+      <section class="feed__section feed__content">
         <h2 class="feed__section-title">Events</h2>
         <p v-if="events.length === 0" class="feed__empty">No events found.</p>
         <div v-else class="feed__events">
@@ -115,7 +190,6 @@ function timeAgo(isoDate: string): string {
 
 <style scoped>
 .feed {
-  max-width: 720px;
   margin: 0 auto;
   padding: var(--space-8) var(--space-4);
   display: flex;
@@ -123,8 +197,48 @@ function timeAgo(isoDate: string): string {
   gap: var(--space-8);
 }
 
-.feed__search {
-  max-width: 480px;
+/* Narrow wrapper for search input and activity list */
+.feed__content {
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.feed__map-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.feed__filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.feed__filter-select {
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-900);
+  background-color: #fff;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-md);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.feed__filter-select:focus {
+  border-color: var(--color-primary);
+}
+
+.feed__filter-date {
+  width: 160px;
 }
 
 .feed__spinner {
