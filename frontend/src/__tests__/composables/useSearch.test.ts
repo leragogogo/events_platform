@@ -2,8 +2,8 @@ import { nextTick, ref } from "vue";
 import { useSearch } from "../../composables/useSearch";
 import { useQuery } from "@tanstack/vue-query";
 
-vi.mock("@tanstack/vue-query", () => ({ useQuery: vi.fn() }));
-vi.mock("../../api/search", () => ({ searchAll: vi.fn() }));
+jest.mock("@tanstack/vue-query", () => ({ useQuery: jest.fn() }));
+jest.mock("../../api/search", () => ({ searchAll: jest.fn() }));
 
 const USERS = [{ _id: "u1", name: "Alice", createdAt: "2024-01-01T00:00:00.000Z" }];
 const EVENTS = [{ _id: "e1", title: "Tech Meetup", description: "", category: "Tech",
@@ -11,7 +11,7 @@ const EVENTS = [{ _id: "e1", title: "Tech Meetup", description: "", category: "T
   capacity: 50, createdByUserId: "u1", createdAt: "" }];
 
 function setup(overrides: { data?: unknown; isLoading?: boolean; isError?: boolean } = {}) {
-  vi.mocked(useQuery).mockReturnValue({
+  jest.mocked(useQuery).mockReturnValue({
     data: ref(overrides.data),
     isLoading: ref(overrides.isLoading ?? false),
     isError: ref(overrides.isError ?? false),
@@ -21,7 +21,7 @@ function setup(overrides: { data?: unknown; isLoading?: boolean; isError?: boole
 
 describe("useSearch", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe("showResults", () => {
@@ -77,15 +77,15 @@ describe("useSearch", () => {
 
   describe("debounce behavior", () => {
     beforeEach(() => {
-      vi.useFakeTimers();
+      jest.useFakeTimers();
     });
 
     afterEach(() => {
-      vi.useRealTimers();
+      jest.useRealTimers();
     });
 
     it("showResults becomes true after debounce fires with query >= 2 chars", async () => {
-      vi.mocked(useQuery).mockReturnValue({
+      jest.mocked(useQuery).mockReturnValue({
         data: ref(undefined),
         isLoading: ref(false),
         isError: ref(false),
@@ -96,13 +96,13 @@ describe("useSearch", () => {
 
       query.value = "ab";
       await nextTick();
-      vi.runAllTimers();
+      jest.runAllTimers();
 
       expect(showResults.value).toBe(true);
     });
 
     it("showResults remains false when query length is 1 after debounce fires", async () => {
-      vi.mocked(useQuery).mockReturnValue({
+      jest.mocked(useQuery).mockReturnValue({
         data: ref(undefined),
         isLoading: ref(false),
         isError: ref(false),
@@ -111,13 +111,13 @@ describe("useSearch", () => {
       const { query, showResults } = useSearch();
       query.value = "a";
       await nextTick();
-      vi.runAllTimers();
+      jest.runAllTimers();
 
       expect(showResults.value).toBe(false);
     });
 
     it("showResults returns to false when query is cleared after debounce", async () => {
-      vi.mocked(useQuery).mockReturnValue({
+      jest.mocked(useQuery).mockReturnValue({
         data: ref(undefined),
         isLoading: ref(false),
         isError: ref(false),
@@ -127,12 +127,12 @@ describe("useSearch", () => {
 
       query.value = "ab";
       await nextTick();
-      vi.runAllTimers();
+      jest.runAllTimers();
       expect(showResults.value).toBe(true);
 
       query.value = "";
       await nextTick();
-      vi.runAllTimers();
+      jest.runAllTimers();
       expect(showResults.value).toBe(false);
     });
   });

@@ -2,18 +2,18 @@ import { useLogin } from "../../composables/useLogin";
 import { useAuthStore } from "../../stores/auth";
 import { useRouter } from "vue-router";
 
-vi.mock("vue-router", () => ({ useRouter: vi.fn() }));
-vi.mock("../../stores/auth", () => ({ useAuthStore: vi.fn() }));
+jest.mock("vue-router", () => ({ useRouter: jest.fn() }));
+jest.mock("../../stores/auth", () => ({ useAuthStore: jest.fn() }));
 
 describe("useLogin", () => {
-  let push: ReturnType<typeof vi.fn>;
-  let login: ReturnType<typeof vi.fn>;
+  let push: jest.Mock;
+  let login: jest.Mock;
 
   beforeEach(() => {
-    push = vi.fn();
-    login = vi.fn().mockResolvedValue(undefined);
-    vi.mocked(useRouter).mockReturnValue({ push } as any);
-    vi.mocked(useAuthStore).mockReturnValue({ login } as any);
+    push = jest.fn();
+    login = jest.fn().mockResolvedValue(undefined);
+    jest.mocked(useRouter).mockReturnValue({ push } as any);
+    jest.mocked(useAuthStore).mockReturnValue({ login } as any);
   });
 
   describe("validation", () => {

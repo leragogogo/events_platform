@@ -4,14 +4,14 @@ import * as authApi from "../../api/auth";
 import { getMyProfile } from "../../api/users";
 import type { MyUser } from "../../api/users";
 
-vi.mock("../../api/auth", () => ({
-  login: vi.fn(),
-  register: vi.fn(),
-  logout: vi.fn(),
+jest.mock("../../api/auth", () => ({
+  login: jest.fn(),
+  register: jest.fn(),
+  logout: jest.fn(),
 }));
 
-vi.mock("../../api/users", () => ({
-  getMyProfile: vi.fn(),
+jest.mock("../../api/users", () => ({
+  getMyProfile: jest.fn(),
 }));
 
 const mockUser: MyUser = {
@@ -28,7 +28,7 @@ describe("auth store", () => {
 
   describe("init", () => {
     it("sets user from getMyProfile response", async () => {
-      vi.mocked(getMyProfile).mockResolvedValue({
+      jest.mocked(getMyProfile).mockResolvedValue({
         data: { user: mockUser, createdEvents: [], participatedEvents: [] },
       } as any);
 
@@ -40,7 +40,7 @@ describe("auth store", () => {
     });
 
     it("sets user to null when getMyProfile fails", async () => {
-      vi.mocked(getMyProfile).mockRejectedValue(new Error("401 Unauthorized"));
+      jest.mocked(getMyProfile).mockRejectedValue(new Error("401 Unauthorized"));
 
       const auth = useAuthStore();
       await auth.init();
@@ -50,7 +50,7 @@ describe("auth store", () => {
     });
 
     it("always sets initialised to true even on failure", async () => {
-      vi.mocked(getMyProfile).mockRejectedValue(new Error("Network error"));
+      jest.mocked(getMyProfile).mockRejectedValue(new Error("Network error"));
 
       const auth = useAuthStore();
       expect(auth.initialised).toBe(false);
@@ -61,7 +61,7 @@ describe("auth store", () => {
 
   describe("login", () => {
     it("sets user from response", async () => {
-      vi.mocked(authApi.login).mockResolvedValue({ data: { user: mockUser } } as any);
+      jest.mocked(authApi.login).mockResolvedValue({ data: { user: mockUser } } as any);
 
       const auth = useAuthStore();
       await auth.login({ email: mockUser.email, password: "secret" });
@@ -72,7 +72,7 @@ describe("auth store", () => {
 
   describe("register", () => {
     it("sets user from response", async () => {
-      vi.mocked(authApi.register).mockResolvedValue({ data: { user: mockUser } } as any);
+      jest.mocked(authApi.register).mockResolvedValue({ data: { user: mockUser } } as any);
 
       const auth = useAuthStore();
       await auth.register({ name: mockUser.name, email: mockUser.email, password: "secret123" });
@@ -83,7 +83,7 @@ describe("auth store", () => {
 
   describe("logout", () => {
     it("calls logout API and clears user", async () => {
-      vi.mocked(authApi.logout).mockResolvedValue({} as any);
+      jest.mocked(authApi.logout).mockResolvedValue({} as any);
 
       const auth = useAuthStore();
       auth.user = mockUser;

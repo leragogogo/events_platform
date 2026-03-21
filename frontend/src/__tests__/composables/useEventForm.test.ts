@@ -2,7 +2,7 @@ import { useEventForm } from "../../composables/useEventForm";
 import { geocodeAddress } from "../../api/geocoding";
 import type { Event } from "../../api/events";
 
-vi.mock("../../api/geocoding", () => ({ geocodeAddress: vi.fn() }));
+jest.mock("../../api/geocoding", () => ({ geocodeAddress: jest.fn() }));
 
 const FUTURE = "2099-12-31T23:59";
 
@@ -185,7 +185,7 @@ describe("useEventForm", () => {
 
   describe("handleAddressBlur", () => {
     beforeEach(() => {
-      vi.mocked(geocodeAddress).mockResolvedValue({
+      jest.mocked(geocodeAddress).mockResolvedValue({
         coordinates: [-0.1276, 51.5074],
         city: "London",
       });
@@ -224,7 +224,7 @@ describe("useEventForm", () => {
     });
 
     it("sets geocodeError when result is null (address not found)", async () => {
-      vi.mocked(geocodeAddress).mockResolvedValue(null);
+      jest.mocked(geocodeAddress).mockResolvedValue(null);
       const form = useEventForm();
       form.address.value = "zzz not a real place zzz";
       await form.handleAddressBlur();
@@ -233,7 +233,7 @@ describe("useEventForm", () => {
     });
 
     it("sets geocodeError on network failure", async () => {
-      vi.mocked(geocodeAddress).mockRejectedValue(new Error("Network error"));
+      jest.mocked(geocodeAddress).mockRejectedValue(new Error("Network error"));
       const form = useEventForm();
       form.address.value = "10 Downing Street, London";
       await form.handleAddressBlur();
@@ -248,7 +248,7 @@ describe("useEventForm", () => {
     });
 
     it("resets isGeocoding to false after failure", async () => {
-      vi.mocked(geocodeAddress).mockRejectedValue(new Error("fail"));
+      jest.mocked(geocodeAddress).mockRejectedValue(new Error("fail"));
       const form = useEventForm();
       form.address.value = "10 Downing Street, London";
       await form.handleAddressBlur();
@@ -260,7 +260,7 @@ describe("useEventForm", () => {
       form.fill(mockEvent); // seeds geocodedResult with London
       form.address.value = "A completely different address";
       // Make geocodeAddress resolve null so we can inspect the cleared state via error
-      vi.mocked(geocodeAddress).mockResolvedValue(null);
+      jest.mocked(geocodeAddress).mockResolvedValue(null);
       await form.handleAddressBlur();
       expect(form.geocodedResult.value).toBeNull();
     });

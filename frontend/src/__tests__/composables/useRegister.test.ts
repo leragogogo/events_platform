@@ -2,18 +2,18 @@ import { useRegister } from "../../composables/useRegister";
 import { useAuthStore } from "../../stores/auth";
 import { useRouter } from "vue-router";
 
-vi.mock("vue-router", () => ({ useRouter: vi.fn() }));
-vi.mock("../../stores/auth", () => ({ useAuthStore: vi.fn() }));
+jest.mock("vue-router", () => ({ useRouter: jest.fn() }));
+jest.mock("../../stores/auth", () => ({ useAuthStore: jest.fn() }));
 
 describe("useRegister", () => {
-  let push: ReturnType<typeof vi.fn>;
-  let register: ReturnType<typeof vi.fn>;
+  let push: jest.Mock;
+  let register: jest.Mock;
 
   beforeEach(() => {
-    push = vi.fn();
-    register = vi.fn().mockResolvedValue(undefined);
-    vi.mocked(useRouter).mockReturnValue({ push } as any);
-    vi.mocked(useAuthStore).mockReturnValue({ register } as any);
+    push = jest.fn();
+    register = jest.fn().mockResolvedValue(undefined);
+    jest.mocked(useRouter).mockReturnValue({ push } as any);
+    jest.mocked(useAuthStore).mockReturnValue({ register } as any);
   });
 
   describe("validation", () => {

@@ -1,0 +1,17 @@
+FROM node:22-alpine AS build
+WORKDIR /app
+
+# /api is a relative path, Nginx proxies it to the backend container.
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=$VITE_API_URL
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+RUN echo "VITE_API_URL=${VITE_API_URL}" > .env && npx vite build
+
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80

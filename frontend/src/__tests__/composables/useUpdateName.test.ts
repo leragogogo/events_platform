@@ -3,23 +3,23 @@ import { useAuthStore } from "../../stores/auth";
 import { useRouter } from "vue-router";
 import { updateMyName } from "../../api/users";
 
-vi.mock("vue-router", () => ({ useRouter: vi.fn() }));
-vi.mock("../../stores/auth", () => ({ useAuthStore: vi.fn() }));
-vi.mock("../../api/users", () => ({ updateMyName: vi.fn() }));
+jest.mock("vue-router", () => ({ useRouter: jest.fn() }));
+jest.mock("../../stores/auth", () => ({ useAuthStore: jest.fn() }));
+jest.mock("../../api/users", () => ({ updateMyName: jest.fn() }));
 
 const mockUser = { _id: "user-1", name: "Alice", email: "alice@example.com", createdAt: "2024-01-01T00:00:00.000Z" };
 const updatedUser = { ...mockUser, name: "Alice Updated" };
 
 describe("useUpdateName", () => {
-  let push: ReturnType<typeof vi.fn>;
+  let push: ReturnType<typeof jest.fn>;
   let auth: { user: typeof mockUser | null };
 
   beforeEach(() => {
-    push = vi.fn();
+    push = jest.fn();
     auth = { user: { ...mockUser } };
-    vi.mocked(useRouter).mockReturnValue({ push } as any);
-    vi.mocked(useAuthStore).mockReturnValue(auth as any);
-    vi.mocked(updateMyName).mockResolvedValue({ data: { user: updatedUser } } as any);
+    jest.mocked(useRouter).mockReturnValue({ push } as any);
+    jest.mocked(useAuthStore).mockReturnValue(auth as any);
+    jest.mocked(updateMyName).mockResolvedValue({ data: { user: updatedUser } } as any);
   });
 
   describe("initial state", () => {
@@ -83,7 +83,7 @@ describe("useUpdateName", () => {
     });
 
     it("sets serverError from API response on failure", async () => {
-      vi.mocked(updateMyName).mockRejectedValue({
+      jest.mocked(updateMyName).mockRejectedValue({
         response: { data: { message: "Name too long" } },
       });
       const { name, serverError, submit } = useUpdateName();
@@ -94,7 +94,7 @@ describe("useUpdateName", () => {
     });
 
     it("falls back to generic message when response has no body", async () => {
-      vi.mocked(updateMyName).mockRejectedValue(new Error("Network error"));
+      jest.mocked(updateMyName).mockRejectedValue(new Error("Network error"));
       const { name, serverError, submit } = useUpdateName();
       name.value = "Alice";
       await submit();
@@ -109,7 +109,7 @@ describe("useUpdateName", () => {
     });
 
     it("resets loading to false after failure", async () => {
-      vi.mocked(updateMyName).mockRejectedValue(new Error("fail"));
+      jest.mocked(updateMyName).mockRejectedValue(new Error("fail"));
       const { name, loading, submit } = useUpdateName();
       name.value = "Alice";
       await submit();

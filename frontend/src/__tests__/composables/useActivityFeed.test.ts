@@ -3,8 +3,8 @@ import { useActivityFeed } from "../../composables/useActivityFeed";
 import { useQuery } from "@tanstack/vue-query";
 import type { Activity } from "../../api/activity";
 
-vi.mock("@tanstack/vue-query", () => ({ useQuery: vi.fn() }));
-vi.mock("../../api/activity", () => ({ getActivityFeed: vi.fn() }));
+jest.mock("@tanstack/vue-query", () => ({ useQuery: jest.fn() }));
+jest.mock("../../api/activity", () => ({ getActivityFeed: jest.fn() }));
 
 const ACTIVITIES: Activity[] = [
   {
@@ -18,7 +18,7 @@ const ACTIVITIES: Activity[] = [
 ];
 
 function setup(overrides: { data?: unknown; isLoading?: boolean; isError?: boolean } = {}) {
-  vi.mocked(useQuery).mockReturnValue({
+  jest.mocked(useQuery).mockReturnValue({
     data: ref(overrides.data),
     isLoading: ref(overrides.isLoading ?? false),
     isError: ref(overrides.isError ?? false),
@@ -27,7 +27,7 @@ function setup(overrides: { data?: unknown; isLoading?: boolean; isError?: boole
 }
 
 describe("useActivityFeed", () => {
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => jest.clearAllMocks());
 
   describe("activities", () => {
     it("returns the activities array from query data", () => {

@@ -2,10 +2,10 @@ import { useRegistration } from "../../composables/useRegistration";
 import { useQueryClient } from "@tanstack/vue-query";
 import { createRegistration, cancelRegistration } from "../../api/registrations";
 
-vi.mock("@tanstack/vue-query", () => ({ useQueryClient: vi.fn() }));
-vi.mock("../../api/registrations", () => ({
-  createRegistration: vi.fn(),
-  cancelRegistration: vi.fn(),
+jest.mock("@tanstack/vue-query", () => ({ useQueryClient: jest.fn() }));
+jest.mock("../../api/registrations", () => ({
+  createRegistration: jest.fn(),
+  cancelRegistration: jest.fn(),
 }));
 
 const EVENT_ID = "event-abc";
@@ -18,17 +18,17 @@ const mockRegistration = {
 };
 
 describe("useRegistration", () => {
-  let getQueryData: ReturnType<typeof vi.fn>;
-  let setQueryData: ReturnType<typeof vi.fn>;
-  let removeQueries: ReturnType<typeof vi.fn>;
+  let getQueryData: ReturnType<typeof jest.fn>;
+  let setQueryData: ReturnType<typeof jest.fn>;
+  let removeQueries: ReturnType<typeof jest.fn>;
 
   beforeEach(() => {
-    getQueryData = vi.fn().mockReturnValue(null);
-    setQueryData = vi.fn();
-    removeQueries = vi.fn();
-    vi.mocked(useQueryClient).mockReturnValue({ getQueryData, setQueryData, removeQueries } as any);
-    vi.mocked(createRegistration).mockResolvedValue({ data: { registration: mockRegistration } } as any);
-    vi.mocked(cancelRegistration).mockResolvedValue({} as any);
+    getQueryData = jest.fn().mockReturnValue(null);
+    setQueryData = jest.fn();
+    removeQueries = jest.fn();
+    jest.mocked(useQueryClient).mockReturnValue({ getQueryData, setQueryData, removeQueries } as any);
+    jest.mocked(createRegistration).mockResolvedValue({ data: { registration: mockRegistration } } as any);
+    jest.mocked(cancelRegistration).mockResolvedValue({} as any);
   });
 
   describe("initial state", () => {
@@ -67,7 +67,7 @@ describe("useRegistration", () => {
     });
 
     it("sets error from API response on failure", async () => {
-      vi.mocked(createRegistration).mockRejectedValue({
+      jest.mocked(createRegistration).mockRejectedValue({
         response: { data: { message: "Event is full" } },
       });
       const { error, register } = useRegistration(EVENT_ID);
@@ -76,7 +76,7 @@ describe("useRegistration", () => {
     });
 
     it("falls back to generic message when response has no body", async () => {
-      vi.mocked(createRegistration).mockRejectedValue(new Error("Network error"));
+      jest.mocked(createRegistration).mockRejectedValue(new Error("Network error"));
       const { error, register } = useRegistration(EVENT_ID);
       await register();
       expect(error.value).toBe("Failed to register. Please try again.");
@@ -89,7 +89,7 @@ describe("useRegistration", () => {
     });
 
     it("resets loading to false after failure", async () => {
-      vi.mocked(createRegistration).mockRejectedValue(new Error("fail"));
+      jest.mocked(createRegistration).mockRejectedValue(new Error("fail"));
       const { loading, register } = useRegistration(EVENT_ID);
       await register();
       expect(loading.value).toBe(false);
@@ -129,7 +129,7 @@ describe("useRegistration", () => {
     });
 
     it("sets error from API response on failure", async () => {
-      vi.mocked(cancelRegistration).mockRejectedValue({
+      jest.mocked(cancelRegistration).mockRejectedValue({
         response: { data: { message: "Registration not found" } },
       });
       const { error, cancel } = setupRegistered();
@@ -138,7 +138,7 @@ describe("useRegistration", () => {
     });
 
     it("falls back to generic message when response has no body", async () => {
-      vi.mocked(cancelRegistration).mockRejectedValue(new Error("Network error"));
+      jest.mocked(cancelRegistration).mockRejectedValue(new Error("Network error"));
       const { error, cancel } = setupRegistered();
       await cancel();
       expect(error.value).toBe("Failed to cancel registration. Please try again.");
@@ -151,7 +151,7 @@ describe("useRegistration", () => {
     });
 
     it("resets loading to false after failure", async () => {
-      vi.mocked(cancelRegistration).mockRejectedValue(new Error("fail"));
+      jest.mocked(cancelRegistration).mockRejectedValue(new Error("fail"));
       const { loading, cancel } = setupRegistered();
       await cancel();
       expect(loading.value).toBe(false);

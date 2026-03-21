@@ -3,8 +3,8 @@ import { useEventMap } from "../../composables/useEventMap";
 import { useQuery } from "@tanstack/vue-query";
 import type { MapEvent } from "../../api/events";
 
-vi.mock("@tanstack/vue-query", () => ({ useQuery: vi.fn() }));
-vi.mock("../../api/events", () => ({ getAllEvents: vi.fn() }));
+jest.mock("@tanstack/vue-query", () => ({ useQuery: jest.fn() }));
+jest.mock("../../api/events", () => ({ getAllEvents: jest.fn() }));
 
 const MAP_EVENTS: MapEvent[] = [
   {
@@ -18,7 +18,7 @@ const MAP_EVENTS: MapEvent[] = [
 ];
 
 function setup(overrides: { data?: unknown; isLoading?: boolean; isError?: boolean } = {}) {
-  vi.mocked(useQuery).mockReturnValue({
+  jest.mocked(useQuery).mockReturnValue({
     data: ref(overrides.data),
     isLoading: ref(overrides.isLoading ?? false),
     isError: ref(overrides.isError ?? false),
@@ -32,7 +32,7 @@ function setup(overrides: { data?: unknown; isLoading?: boolean; isError?: boole
 }
 
 describe("useEventMap", () => {
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => jest.clearAllMocks());
 
   describe("events", () => {
     it("returns the events array from query data", () => {
@@ -76,9 +76,9 @@ describe("useEventMap", () => {
   describe("queryFn filter coercion", () => {
     it("omits empty-string filter values (passes undefined for empty fields)", async () => {
       const { getAllEvents } = await import("../../api/events");
-      vi.mocked(getAllEvents).mockResolvedValue({ data: { events: [] } } as any);
+      jest.mocked(getAllEvents).mockResolvedValue({ data: { events: [] } } as any);
 
-      vi.mocked(useQuery).mockImplementation(({ queryFn }: any) => {
+      jest.mocked(useQuery).mockImplementation(({ queryFn }: any) => {
         queryFn();
         return { data: ref(undefined), isLoading: ref(false), isError: ref(false) } as any;
       });
@@ -97,9 +97,9 @@ describe("useEventMap", () => {
 
     it("passes non-empty filter values through to getAllEvents", async () => {
       const { getAllEvents } = await import("../../api/events");
-      vi.mocked(getAllEvents).mockResolvedValue({ data: { events: [] } } as any);
+      jest.mocked(getAllEvents).mockResolvedValue({ data: { events: [] } } as any);
 
-      vi.mocked(useQuery).mockImplementation(({ queryFn }: any) => {
+      jest.mocked(useQuery).mockImplementation(({ queryFn }: any) => {
         queryFn();
         return { data: ref(undefined), isLoading: ref(false), isError: ref(false) } as any;
       });

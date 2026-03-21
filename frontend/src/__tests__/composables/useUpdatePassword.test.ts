@@ -2,16 +2,16 @@ import { useUpdatePassword } from "../../composables/useUpdatePassword";
 import { useRouter } from "vue-router";
 import { updateMyPassword } from "../../api/users";
 
-vi.mock("vue-router", () => ({ useRouter: vi.fn() }));
-vi.mock("../../api/users", () => ({ updateMyPassword: vi.fn() }));
+jest.mock("vue-router", () => ({ useRouter: jest.fn() }));
+jest.mock("../../api/users", () => ({ updateMyPassword: jest.fn() }));
 
 describe("useUpdatePassword", () => {
-  let push: ReturnType<typeof vi.fn>;
+  let push: ReturnType<typeof jest.fn>;
 
   beforeEach(() => {
-    push = vi.fn();
-    vi.mocked(useRouter).mockReturnValue({ push } as any);
-    vi.mocked(updateMyPassword).mockResolvedValue({} as any);
+    push = jest.fn();
+    jest.mocked(useRouter).mockReturnValue({ push } as any);
+    jest.mocked(updateMyPassword).mockResolvedValue({} as any);
   });
 
   describe("validation", () => {
@@ -74,7 +74,7 @@ describe("useUpdatePassword", () => {
     });
 
     it("sets serverError from API response on failure", async () => {
-      vi.mocked(updateMyPassword).mockRejectedValue({
+      jest.mocked(updateMyPassword).mockRejectedValue({
         response: { data: { message: "Current password is incorrect" } },
       });
       const { password, confirmPassword, serverError, submit } = useUpdatePassword();
@@ -86,7 +86,7 @@ describe("useUpdatePassword", () => {
     });
 
     it("falls back to generic message when response has no body", async () => {
-      vi.mocked(updateMyPassword).mockRejectedValue(new Error("Network error"));
+      jest.mocked(updateMyPassword).mockRejectedValue(new Error("Network error"));
       const { password, confirmPassword, serverError, submit } = useUpdatePassword();
       password.value = "newpassword";
       confirmPassword.value = "newpassword";
@@ -103,7 +103,7 @@ describe("useUpdatePassword", () => {
     });
 
     it("resets loading to false after failure", async () => {
-      vi.mocked(updateMyPassword).mockRejectedValue(new Error("fail"));
+      jest.mocked(updateMyPassword).mockRejectedValue(new Error("fail"));
       const { password, confirmPassword, loading, submit } = useUpdatePassword();
       password.value = "newpassword";
       confirmPassword.value = "newpassword";

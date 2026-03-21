@@ -4,25 +4,25 @@ import { useQueryClient } from "@tanstack/vue-query";
 import { updateEvent } from "../../api/events";
 import { geocodeAddress } from "../../api/geocoding";
 
-vi.mock("vue-router", () => ({ useRouter: vi.fn() }));
-vi.mock("@tanstack/vue-query", () => ({ useQueryClient: vi.fn() }));
-vi.mock("../../api/events", () => ({ updateEvent: vi.fn() }));
-vi.mock("../../api/geocoding", () => ({ geocodeAddress: vi.fn() }));
+jest.mock("vue-router", () => ({ useRouter: jest.fn() }));
+jest.mock("@tanstack/vue-query", () => ({ useQueryClient: jest.fn() }));
+jest.mock("../../api/events", () => ({ updateEvent: jest.fn() }));
+jest.mock("../../api/geocoding", () => ({ geocodeAddress: jest.fn() }));
 
 const EVENT_ID = "event-123";
 const FUTURE = "2099-12-31T23:59";
 
 describe("useEditEvent", () => {
-  let push: ReturnType<typeof vi.fn>;
-  let invalidateQueries: ReturnType<typeof vi.fn>;
+  let push: ReturnType<typeof jest.fn>;
+  let invalidateQueries: ReturnType<typeof jest.fn>;
 
   beforeEach(() => {
-    push = vi.fn();
-    invalidateQueries = vi.fn();
-    vi.mocked(useRouter).mockReturnValue({ push } as any);
-    vi.mocked(useQueryClient).mockReturnValue({ invalidateQueries } as any);
-    vi.mocked(updateEvent).mockResolvedValue({ data: { event: {} } } as any);
-    vi.mocked(geocodeAddress).mockResolvedValue({ coordinates: [-2.2426, 53.4808], city: "Manchester" });
+    push = jest.fn();
+    invalidateQueries = jest.fn();
+    jest.mocked(useRouter).mockReturnValue({ push } as any);
+    jest.mocked(useQueryClient).mockReturnValue({ invalidateQueries } as any);
+    jest.mocked(updateEvent).mockResolvedValue({ data: { event: {} } } as any);
+    jest.mocked(geocodeAddress).mockResolvedValue({ coordinates: [-2.2426, 53.4808], city: "Manchester" });
   });
 
   function setup() {
@@ -71,7 +71,7 @@ describe("useEditEvent", () => {
     });
 
     it("sets serverError from API response on failure", async () => {
-      vi.mocked(updateEvent).mockRejectedValue({
+      jest.mocked(updateEvent).mockRejectedValue({
         response: { data: { message: "Not authorised" } },
       });
       const { serverError, submit } = setup();
@@ -81,7 +81,7 @@ describe("useEditEvent", () => {
     });
 
     it("falls back to generic message when response has no body", async () => {
-      vi.mocked(updateEvent).mockRejectedValue(new Error("Network error"));
+      jest.mocked(updateEvent).mockRejectedValue(new Error("Network error"));
       const { serverError, submit } = setup();
       await submit();
       expect(serverError.value).toBe("Failed to update event. Please try again.");
@@ -94,14 +94,14 @@ describe("useEditEvent", () => {
     });
 
     it("resets isPending to false after failure", async () => {
-      vi.mocked(updateEvent).mockRejectedValue(new Error("fail"));
+      jest.mocked(updateEvent).mockRejectedValue(new Error("fail"));
       const { isPending, submit } = setup();
       await submit();
       expect(isPending.value).toBe(false);
     });
 
     it("geocodes address on submit if address was not blurred", async () => {
-      vi.mocked(geocodeAddress).mockResolvedValue({ coordinates: [-2.2426, 53.4808], city: "Manchester" });
+      jest.mocked(geocodeAddress).mockResolvedValue({ coordinates: [-2.2426, 53.4808], city: "Manchester" });
       const form = useEditEvent(EVENT_ID);
       form.title.value = "Updated Event";
       form.description.value = "Updated description";
