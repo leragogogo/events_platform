@@ -14,7 +14,7 @@ async function logout() {
   loggingOut.value = true;
   try {
     await auth.logout();
-    router.push({ name: "login" });
+    router.push({ name: "feed" });
   } finally {
     loggingOut.value = false;
   }
