@@ -23,7 +23,7 @@ Copy the example file and fill in the required values:
 // Linux/Mac
 cp .env.example .env
 // Windows
-copy .env.example .env Windows
+copy .env.example .env
 ```
 
 
