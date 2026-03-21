@@ -1,4 +1,4 @@
-import { computed } from "vue";
+import { computed, type Ref } from "vue";
 import { useQuery } from "@tanstack/vue-query";
 import { getActivityFeed } from "../api/activity";
 import type { Activity } from "../api/activity";
@@ -9,10 +9,11 @@ import type { Activity } from "../api/activity";
  * Returns recent activity from approved connections — events they created
  * or registered for.
  */
-export function useActivityFeed() {
+export function useActivityFeed(options: { enabled?: Ref<boolean> } = {}) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["activity-feed"],
     queryFn: () => getActivityFeed().then((r) => r.data.activities),
+    enabled: options.enabled ?? true,
   });
 
   const activities = computed<Activity[]>(() => data.value ?? []);

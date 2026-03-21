@@ -31,6 +31,7 @@ const router = createRouter({
           path: "feed",
           name: "feed",
           component: () => import("../pages/FeedPage.vue"),
+          meta: { public: true },
         },
         {
           path: "events",
@@ -86,7 +87,7 @@ router.beforeEach(async (to) => {
   const isLoggedIn = !!auth.user;
 
   // Redirect logged-in users away from login/register
-  if (to.meta.public && isLoggedIn) {
+  if ((to.name === "login" || to.name === "register") && isLoggedIn) {
     return { name: "feed" };
   }
 

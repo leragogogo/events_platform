@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useQuery } from "@tanstack/vue-query";
+import { useAuthStore } from "../stores/auth";
 import { useSearch } from "../composables/useSearch";
 import { useActivityFeed } from "../composables/useActivityFeed";
 import { useEventMap } from "../composables/useEventMap";
@@ -12,12 +13,15 @@ import EmptyState from "../components/ui/EmptyState.vue";
 import EventCard from "../components/EventCard.vue";
 import EventMap from "../components/EventMap.vue";
 
+const auth = useAuthStore();
+const isLoggedIn = computed(() => !!auth.user);
+
 const { query, users, events, isLoading, isError, showResults } = useSearch();
 const {
   activities,
   isLoading: activityLoading,
   isError: activityError,
-} = useActivityFeed();
+} = useActivityFeed({ enabled: isLoggedIn });
 
 // Map filters
 const mapCategory = ref("");
@@ -61,7 +65,7 @@ function timeAgo(isoDate: string): string {
 
 <template>
   <div class="feed">
-    <div class="feed__content">
+    <div v-if="isLoggedIn" class="feed__content">
       <BaseInput
         v-model="query"
         placeholder="Search people or events..."
@@ -109,41 +113,59 @@ function timeAgo(isoDate: string): string {
       </section>
 
       <div class="feed__content">
-        <section class="feed__section">
-          <h2 class="feed__section-title">Recent Activity</h2>
+        <template v-if="isLoggedIn">
+          <section class="feed__section">
+            <h2 class="feed__section-title">Recent Activity</h2>
 
-          <div v-if="activityLoading" class="feed__spinner">
-            <BaseSpinner size="lg" />
+            <div v-if="activityLoading" class="feed__spinner">
+              <BaseSpinner size="lg" />
+            </div>
+
+            <EmptyState
+              v-else-if="activityError"
+              title="Something went wrong"
+              description="Failed to load activity. Please try again."
+            />
+
+            <EmptyState
+              v-else-if="activities.length === 0"
+              title="No recent activity"
+              description="Connect with people to see when they create or register for events."
+            />
+
+            <ul v-else class="feed__activity-list">
+              <li v-for="item in activities" :key="item._id" class="activity-item">
+                <RouterLink
+                  :to="{ name: 'user-profile', params: { id: item.actorId._id } }"
+                  class="activity-item__actor"
+                >{{ item.actorId.name }}</RouterLink>
+                <span class="activity-item__verb">
+                  {{ item.type === "created" ? "created" : "registered for" }}
+                </span>
+                <RouterLink
+                  :to="{ name: 'event-detail', params: { id: item.eventId._id } }"
+                  class="activity-item__event"
+                >{{ item.eventId.title }}</RouterLink>
+                <span class="activity-item__time">{{ timeAgo(item.createdAt) }}</span>
+              </li>
+            </ul>
+          </section>
+        </template>
+
+        <section v-else class="feed__cta">
+          <h2 class="feed__cta-title">See what's happening</h2>
+          <p class="feed__cta-text">
+            Sign in or create an account to search events, follow people, and see
+            their activity right here.
+          </p>
+          <div class="feed__cta-actions">
+            <RouterLink :to="{ name: 'login' }" class="feed__cta-btn feed__cta-btn--primary">
+              Sign in
+            </RouterLink>
+            <RouterLink :to="{ name: 'register' }" class="feed__cta-btn feed__cta-btn--secondary">
+              Create account
+            </RouterLink>
           </div>
-
-          <EmptyState
-            v-else-if="activityError"
-            title="Something went wrong"
-            description="Failed to load activity. Please try again."
-          />
-
-          <EmptyState
-            v-else-if="activities.length === 0"
-            title="No recent activity"
-            description="Connect with people to see when they create or register for events."
-          />
-
-          <ul v-else class="feed__activity-list">
-            <li v-for="item in activities" :key="item._id" class="activity-item">
-              <RouterLink
-                :to="{ name: 'user-profile', params: { id: item.actorId._id } }"
-                class="activity-item__actor"
-              >{{ item.actorId.name }}</RouterLink>
-              <span class="activity-item__verb">
-                {{ item.type === "created" ? "created" : "registered for" }}
-              </span>
-              <RouterLink
-                :to="{ name: 'event-detail', params: { id: item.eventId._id } }"
-                class="activity-item__event"
-              >{{ item.eventId.title }}</RouterLink>
-              <span class="activity-item__time">{{ timeAgo(item.createdAt) }}</span>
-            </li>
-          </ul>
         </section>
       </div>
     </template>
@@ -341,5 +363,59 @@ function timeAgo(isoDate: string): string {
   font-size: var(--font-size-xs);
   color: var(--color-neutral-400);
   white-space: nowrap;
+}
+
+.feed__cta {
+  padding: var(--space-8) var(--space-6);
+  background: #fff;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4);
+}
+
+.feed__cta-title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-neutral-900);
+}
+
+.feed__cta-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-500);
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+.feed__cta-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.feed__cta-btn {
+  display: inline-block;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.feed__cta-btn:hover { opacity: 0.85; }
+
+.feed__cta-btn--primary {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
+.feed__cta-btn--secondary {
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-200);
 }
 </style>

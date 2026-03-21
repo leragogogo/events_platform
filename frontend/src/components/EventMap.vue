@@ -87,6 +87,7 @@ watch(
   height: 400px;
   border-radius: var(--radius-xl);
   overflow: hidden;
+  isolation: isolate;
 }
 
 .map-popup {

@@ -14,7 +14,7 @@ const router = Router();
 
 router.get("/meta/categories", getCategories);
 router.get("/user/:userId", getEventsByUserId);
-router.get("/", authMiddleware, getAllEvents);
+router.get("/", getAllEvents);
 
 router.get("/:id", getEventById);
 router.post("/", authMiddleware, createEvent);
