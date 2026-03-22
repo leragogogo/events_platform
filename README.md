@@ -2,6 +2,9 @@
 
 A full-stack event management platform built with Vue 3, Node/Express, and MongoDB.
 
+## Link to Video Demo
+- [Demo](https://drive.google.com/file/d/1LxrFyU0lBppmgdOJm_3Lqy4B3OX3Xfa5/view?usp=sharing)
+
 ## Running with Docker Compose
 
 ### Prerequisites
