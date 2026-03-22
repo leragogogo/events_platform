@@ -24,8 +24,6 @@ pnpm-debug.log*
 node_modules/
 **/node_modules/
 
-# lockfiles (choose what you actually use; keeping one is fine)
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
